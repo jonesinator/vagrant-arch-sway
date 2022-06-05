@@ -10,25 +10,23 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--graphicscontroller", "vmsvga"]
   end
 
-  # Spew some files into place.
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    set -eux
+
+    # Put local files into place in the VM.
     sudo cp /vagrant/sway.sh /etc/profile.d/sway.sh
     cp -r /vagrant/dotfiles /home/vagrant/dotfiles
-  SHELL
 
-  # Install paru package manager as an alternative to pacman.
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    # Install paru package manager as an alternative to pacman.
     sudo pacman --sync --refresh --needed --noconfirm base-devel cargo git
     git clone https://aur.archlinux.org/paru.git
     cd paru
     makepkg --syncdeps --install --noconfirm
     cd ../
     rm --recursive --force paru
-  SHELL
 
-  # Install various tools.
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    paru --sync --needed --noconfirm \
+    # Install tons of packages!
+    paru --sync --refresh --needed --noconfirm \
       moreutils \
       exa \
       bat \
@@ -36,7 +34,7 @@ Vagrant.configure("2") do |config|
       tokei \
       htop \
       podman \
-      podman-dns-name \
+      podman-dnsname \
       docker-compose \
       buildah \
       skopeo \
@@ -47,14 +45,7 @@ Vagrant.configure("2") do |config|
       sd \
       zoxide \
       neovim \
-      lazygit
-
-    sudo chsh vagrant --shell /usr/bin/zsh
-  SHELL
-
-  # Desktop environment.
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    paru --sync --needed --noconfirm \
+      lazygit \
       sway \
       gnu-free-fonts \
       polkit \
@@ -67,33 +58,29 @@ Vagrant.configure("2") do |config|
       waybar \
       wl-clipboard \
       otf-font-awesome \
-      ly
-
-    sudo systemctl enable ly.service
-    sudo systemctl start ly.service
-  SHELL
-
-  # Browser
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    paru --sync --needed --noconfirm \
+      ly \
       qutebrowser \
       pipewire-jack \
       wireplumber \
-      qt5-wayland
-  SHELL
-
-  # In progress.
-  config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    paru --sync --needed --noconfirm \
+      qt5-wayland \
       stow \
       tmux \
       ttc-iosevka \
       ttf-nerd-fonts-symbols \
       sway-launcher-desktop
 
+    # Set default shell to ZSH.
+    sudo chsh vagrant --shell /usr/bin/zsh
+
+    # Enable ly (TUI-based login manager.)
+    sudo systemctl enable ly.service
+    sudo systemctl start ly.service
+    
+    # Set up dotfile symlinks.
     cd /home/vagrant/dotfiles
     stow -v */
 
+    # Configure rootless podman for vagrant user.
     sudo touch /etc/subuid /etc/subgid
     sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 vagrant
     podman system migrate
@@ -101,4 +88,29 @@ Vagrant.configure("2") do |config|
     systemctl --user start podman.service
   SHELL
 
+  # IN PROGRESS
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    paru --sync --refresh --needed --noconfirm \
+      gammastep \
+      direnv \
+      starship
+
+    paru --sync --refresh --needed --noconfirm \
+      nvm
+    source /usr/share/nvm/init-nvm.sh
+    nvm install node
+  SHELL
+
+  # TODO
+  #   Fancier clipboard management
+  #   screenshots
+  #   ensure zoom works
+  #   lastpass / password manager
+  #
+  #   Continue configuration for:
+  #     kitty
+  #     zsh
+  #     tmux
+  #     qutebrowser
+  #     neovim
 end
