@@ -13,13 +13,12 @@ Vagrant.configure("2") do |config|
   # Spew some files into place.
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
     sudo cp /vagrant/sway.sh /etc/profile.d/sway.sh
-    mkdir -p /home/vagrant/.config/sway
-    cp /vagrant/sway-config /home/vagrant/.config/sway/config
+    cp -r /vagrant/dotfiles /home/vagrant/dotfiles
   SHELL
 
   # Install paru package manager as an alternative to pacman.
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
-    sudo pacman --sync --needed --noconfirm base-devel cargo git
+    sudo pacman --sync --refresh --needed --noconfirm base-devel cargo git
     git clone https://aur.archlinux.org/paru.git
     cd paru
     makepkg --syncdeps --install --noconfirm
@@ -37,6 +36,10 @@ Vagrant.configure("2") do |config|
       tokei \
       htop \
       podman \
+      podman-dns-name \
+      docker-compose \
+      buildah \
+      skopeo \
       zsh \
       ripgrep \
       procs \
@@ -70,6 +73,32 @@ Vagrant.configure("2") do |config|
     sudo systemctl start ly.service
   SHELL
 
-  # brave --ozone-platform=wayland
-  # https://github.com/Biont/sway-launcher-desktop
+  # Browser
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    paru --sync --needed --noconfirm \
+      qutebrowser \
+      pipewire-jack \
+      wireplumber \
+      qt5-wayland
+  SHELL
+
+  # In progress.
+  config.vm.provision "shell", privileged: false, inline: <<-SHELL
+    paru --sync --needed --noconfirm \
+      stow \
+      tmux \
+      ttc-iosevka \
+      ttf-nerd-fonts-symbols \
+      sway-launcher-desktop
+
+    cd /home/vagrant/dotfiles
+    stow -v */
+
+    sudo touch /etc/subuid /etc/subgid
+    sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 vagrant
+    podman system migrate
+    systemctl --user enable podman.service
+    systemctl --user start podman.service
+  SHELL
+
 end

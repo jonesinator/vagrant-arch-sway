@@ -4,7 +4,10 @@ set $down j
 set $up k
 set $right l
 set $term kitty
-set $menu bemenu-run | xargs swaymsg exec --
+set $menu exec $term --class=launcher -e sway-launcher-desktop
+
+for_window [app_id="^launcher$"] floating enable, sticky enable, resize set 30 ppt 60 ppt, border pixel 10
+bindsym $mod+d exec $menu
 
 output Virtual-1 bg /usr/share/backgrounds/sway/Sway_Wallpaper_Blue_1920x1080.png fill
 output Virtual-1 resolution 1920x1080 position 0,0
@@ -37,9 +40,6 @@ exec swayidle -w \
 
     # Kill focused window
     bindsym $mod+Shift+q kill
-
-    # Start your launcher
-    bindsym $mod+d exec $menu
 
     # Drag floating windows by holding down $mod and left mouse button.
     # Resize them with right mouse button + $mod.
@@ -188,5 +188,6 @@ bar swaybar_command waybar
 
 exec wl-paste -t text --watch clipman store >> /tmp/clipman.log.1 2>&1 &
 exec wl-paste -p -t text --watch clipman store -P --histpath="~/.local/share/clipman-primary.json"
+exec kitty
 
 include /etc/sway/config.d/*
